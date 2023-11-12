@@ -146,31 +146,31 @@ export const getStudentNOCs = async (req, res) => {
 };
   
 
-const updateExistingStudents = async () => {
-  try {
-    const students = await Student.find();
-    console.log("students:", students);
+// const updateExistingStudents = async () => {
+//   try {
+//     const students = await Student.find();
+//     console.log("students:", students);
 
-    for (const student of students) {
-      if (!student.password.startsWith('$2')) {
-        // If the password is not hashed (doesn't start with '$2')
-        const hashedPassword = await bcrypt.hash(student.password, 10);
+//     for (const student of students) {
+//       if (!student.password.startsWith('$2')) {
+//         // If the password is not hashed (doesn't start with '$2')
+//         const hashedPassword = await bcrypt.hash(student.password, 10);
         
-        // Use findByIdAndUpdate to update the document by its _id
-        await Student.findByIdAndUpdate(
-          student._id,
-          { $set: { password: hashedPassword } },
-          { new: true } // Return the updated document
-        );
-      }
-    }
+//         // Use findByIdAndUpdate to update the document by its _id
+//         await Student.findByIdAndUpdate(
+//           student._id,
+//           { $set: { password: hashedPassword } },
+//           { new: true } // Return the updated document
+//         );
+//       }
+//     }
 
-    console.log('Existing student passwords updated successfully.');
-  } catch (error) {
-    console.error('Error updating existing student passwords:', error);
-  } finally {
-    mongoose.connection.close();
-  }
-};
-// Call the function to update existing students
-updateExistingStudents();
+//     console.log('Existing student passwords updated successfully.');
+//   } catch (error) {
+//     console.error('Error updating existing student passwords:', error);
+//   } finally {
+//     mongoose.connection.close();
+//   }
+// };
+// // Call the function to update existing students
+// updateExistingStudents();
