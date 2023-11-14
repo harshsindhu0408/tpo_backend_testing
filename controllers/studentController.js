@@ -76,8 +76,8 @@ export const updatePassword = async (req, res) => {
         .send({ success: false, message: "All fields are mandatory" });
     }
 
-    const studentId = req.user._id; // Change the parameter name to studentId
-    console.log("During password change: ", studentId);
+    const studentId = req.user._id;
+    console.log("During password change: ", req.user._id);
 
     // Find the student by ID
     const user = await Student.findById(studentId);
@@ -87,6 +87,7 @@ export const updatePassword = async (req, res) => {
         message: "Not Registered",
       });
     }
+    console.log("user hai ye ->", user);
 
     const match = await comparePassword(oldpassword, user.password);
     if (!match) {
@@ -97,7 +98,7 @@ export const updatePassword = async (req, res) => {
     }
 
     const hashed = await hashPassword(newpassword);
-    await students.findByIdAndUpdate(user._id, { password: hashed });
+    await Student.findByIdAndUpdate(user._id, { password: hashed });
     res.status(200).send({
       success: true,
       message: "Password Reset Successfully",
@@ -146,31 +147,40 @@ export const getStudentNOCs = async (req, res) => {
 };
   
 
-// const updateExistingStudents = async () => {
-//   try {
-//     const students = await Student.find();
-//     console.log("students:", students);
+const updateExistingStudents = async () => {
+  let connection;
+  try {
+    connection = await mongoose.createConnection('mongodb+srv://harshsindhupvt:6EtBMUGjZPz6k3iu@cluster0.3j7h4kw.mongodb.net/UIET_NOC_DP', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-//     for (const student of students) {
-//       if (!student.password.startsWith('$2')) {
-//         // If the password is not hashed (doesn't start with '$2')
-//         const hashedPassword = await bcrypt.hash(student.password, 10);
-        
-//         // Use findByIdAndUpdate to update the document by its _id
-//         await Student.findByIdAndUpdate(
-//           student._id,
-//           { $set: { password: hashedPassword } },
-//           { new: true } // Return the updated document
-//         );
-//       }
-//     }
+    const Student = connection.model('Student', studentSchema);
 
-//     console.log('Existing student passwords updated successfully.');
-//   } catch (error) {
-//     console.error('Error updating existing student passwords:', error);
-//   } finally {
-//     mongoose.connection.close();
-//   }
-// };
-// // Call the function to update existing students
-// updateExistingStudents();
+    const students = await Student.find();
+    console.log("students:", students);
+
+    for (const student of students) {
+      if (!student.password.startsWith('$2')) {
+        // If the password is not hashed (doesn't start with '$2')
+        const hashedPassword = await hashPassword(student.password);
+
+        // Use updateOne to update the document by user ID
+        await Student.updateOne(
+          { _id: student._id },
+          { $set: { password: hashedPassword } }
+        );
+      }
+    }
+
+    console.log('Existing student passwords updated successfully.');
+  } catch (error) {
+    console.error('Error updating existing student passwords:', error);
+  } finally {
+    if (connection) {
+      connection.close();
+    }
+  }
+};
+// Call the function to update existing students
+updateExistingStudents();
