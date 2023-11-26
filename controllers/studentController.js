@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { comparePassword, hashPassword } from "../helpers/bcrypt.js";
 import bcrypt from "bcrypt";
 import mongoose from 'mongoose';
+import noc from "../models/noc.js";
 
 // loginStudent controller
 export const loginStudent = async (req, res) => {
@@ -29,7 +30,7 @@ export const loginStudent = async (req, res) => {
     if (!match) {
       return res.status(400).send({
         success: false,
-        message: "Password is not hashed",
+        message: "Incorrect Password",
       });
     }
 
@@ -52,9 +53,10 @@ export const loginStudent = async (req, res) => {
   }
 };
 
+// get student profile controller
 export const studentProfile = async (req, res) => {
   try {
-    const user = await Student.findById(req.user._id).select("-password");
+    const user = await Student.findById(req.user._id).select("-password"); // password excluded
 
     if (!user) {
       return res.status(404).json({ message: "Student not found" });
@@ -71,15 +73,13 @@ export const updatePassword = async (req, res) => {
   try {
     const { oldpassword, newpassword } = req.body;
     if (!oldpassword || !newpassword) {
-      res
+      return res
         .status(400)
         .send({ success: false, message: "All fields are mandatory" });
     }
 
     const studentId = req.user._id;
-    console.log("During password change: ", req.user._id);
 
-    // Find the student by ID
     const user = await Student.findById(studentId);
     if (!user) {
       return res.status(404).send({
@@ -87,7 +87,6 @@ export const updatePassword = async (req, res) => {
         message: "Not Registered",
       });
     }
-    console.log("user hai ye ->", user);
 
     const match = await comparePassword(oldpassword, user.password);
     if (!match) {
@@ -114,38 +113,37 @@ export const updatePassword = async (req, res) => {
 };
 
 export const getStudentNOCs = async (req, res) => {
-    try {
-      const userId = req.user._id;
-  
-      // Find the student using the user ID
-      const student = await Student.findOne({ _id: userId });
-  
-      if (!student) {
-        return res.status(404).json({
-          success: false,
-          message: 'Student not found',
-        });
-      }
-  
-      // Populate the NOCs array to get all associated NOCs
-      await student.populate('NOCs').execPopulate();
-      const studentNOCs = student.NOCs;
-  
-      res.status(200).json({
-        success: true,
-        message: 'Student NOCs retrieved successfully',
-        NOCs: studentNOCs,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
+  try {
+    const loggedInStudentId = req.user._id;
+
+    // Find the logged-in student
+    const student = await Student.findById(loggedInStudentId);
+
+    if (!student) {
+      return res.status(404).json({
         success: false,
-        message: 'Internal server error',
-        error: error.message,
+        message: 'Student not found.',
       });
     }
+
+    // Find all NOCs associated with the student ID
+    const studentNOCs = await noc.find({ studentEnrolling: student._id });
+
+    res.status(200).json({
+      success: true,
+      message: 'All NOCs for the logged-in student retrieved successfully',
+      NOCs: studentNOCs,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
 };
-  
+
 
 const updateExistingStudents = async () => {
   let connection;
@@ -155,10 +153,7 @@ const updateExistingStudents = async () => {
       useUnifiedTopology: true,
     });
 
-    const Student = connection.model('Student', studentSchema);
-
     const students = await Student.find();
-    console.log("students:", students);
 
     for (const student of students) {
       if (!student.password.startsWith('$2')) {
@@ -182,5 +177,6 @@ const updateExistingStudents = async () => {
     }
   }
 };
+
 // Call the function to update existing students
 updateExistingStudents();

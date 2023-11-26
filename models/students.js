@@ -28,10 +28,6 @@ const studentSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    password: {
-      type: String,
-      required: true,
-    },
     registerationNumber: {
       type: String,
       required: true,

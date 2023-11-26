@@ -5,7 +5,6 @@ import studentRoutes from './routes/studentRoutes.js';
 
 const app = express();
 
-// Middlewares
 app.use(express.json());
 app.use(cors());
 
